@@ -49,17 +49,6 @@ class CashCardController {
         }
     }
 
-    @PostMapping
-    private ResponseEntity<Void> createCashCard(@RequestBody CashCard newCashCardRequest, UriComponentsBuilder ucb, Principal principal) {
-        CashCard cashCardWithOwner = new CashCard(null, newCashCardRequest.amount(), principal.getName());
-        CashCard savedCashCard = cashCardRepository.save(cashCardWithOwner);
-        URI locationOfNewCashCard = ucb
-                .path("cashcards/{id}")
-                .buildAndExpand(savedCashCard.id())
-                .toUri();
-        return ResponseEntity.created(locationOfNewCashCard).build();
-    }
-
     @GetMapping
     private ResponseEntity<List<CashCard>> findAll(Pageable pageable, Principal principal) {
         Page<CashCard> page = cashCardRepository.findByOwner(principal.getName(),
@@ -69,6 +58,17 @@ class CashCardController {
                         pageable.getSortOr(Sort.by(Sort.Direction.ASC, "amount"))
                 ));
         return ResponseEntity.ok(page.getContent());
+    }
+
+    @PostMapping
+    private ResponseEntity<Void> createCashCard(@RequestBody CashCard newCashCardRequest, UriComponentsBuilder ucb, Principal principal) {
+        CashCard cashCardWithOwner = new CashCard(null, newCashCardRequest.amount(), principal.getName());
+        CashCard savedCashCard = cashCardRepository.save(cashCardWithOwner);
+        URI locationOfNewCashCard = ucb
+                .path("cashcards/{id}")
+                .buildAndExpand(savedCashCard.id())
+                .toUri();
+        return ResponseEntity.created(locationOfNewCashCard).build();
     }
 
     @PutMapping("/{requestedId}")
@@ -81,5 +81,14 @@ class CashCardController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{id}")
+    private ResponseEntity<Void> deleteCashCard(@PathVariable Long id, Principal principal) {
+        if (!cashCardRepository.existsByIdAndOwner(id, principal.getName())) {
+            return ResponseEntity.notFound().build();
+        }
+        cashCardRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
